@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { MemoryVectorStore } from 'langchain/vectorstores/memory';
-import { OpenAI } from '@langchain/openai';
+import { ChatOpenAI } from '@langchain/openai';
 import { RetrievalQAChain } from 'langchain/chains';
 import { CheerioWebBaseLoader } from 'langchain/document_loaders/web/cheerio';
 import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
@@ -13,6 +13,7 @@ import { Document } from 'langchain/document';
 import * as fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { detect } from 'langdetect';
 
 // Initialize environment variables
 dotenv.config();
@@ -42,8 +43,8 @@ async function initializeDocumentationSystem() {
             openAIApiKey: process.env.OPENAI_API_KEY,
         });
 
-        // Initialize the LLM
-        const model = new OpenAI({
+        // Initialize the LLM with better multilingual support
+        const model = new ChatOpenAI({
             openAIApiKey: process.env.OPENAI_API_KEY,
             temperature: 0.3,
             modelName: 'gpt-3.5-turbo',
@@ -66,14 +67,16 @@ async function initializeDocumentationSystem() {
 
         // Add documents to vector store
         await vectorStore.addDocuments(splitDocs);
+        console.log('✅ Documents added to vector store');
 
         // Create the QA chain
         qaChain = RetrievalQAChain.fromLLM(
             model,
-            vectorStore.asRetriever(),
+            vectorStore.asRetriever({
+                k: 4, // Number of documents to retrieve
+            }),
             {
                 returnSourceDocuments: true,
-                k: 4, // Number of documents to retrieve
             }
         );
 
@@ -104,7 +107,20 @@ async function loadDocuments() {
         console.error('⚠️ Error loading web documentation:', error.message);
     }
 
-    // 2. Load local PDF files if they exist
+    // 2. Load FAQ PDF from data folder
+    const faqPdfPath = path.join(__dirname, 'data', 'faq.pdf');
+    try {
+        await fs.access(faqPdfPath);
+        console.log('📥 Loading FAQ PDF...');
+        const loader = new PDFLoader(faqPdfPath);
+        const faqDocs = await loader.load();
+        documents.push(...faqDocs);
+        console.log(`✅ Loaded FAQ PDF: ${faqDocs.length} pages`);
+    } catch (error) {
+        console.log('ℹ️ FAQ PDF not found in data folder, skipping FAQ loading');
+    }
+
+    // 3. Load other PDF files if documents/pdfs directory exists
     const pdfDir = path.join(__dirname, 'documents', 'pdfs');
     try {
         await fs.access(pdfDir);
@@ -120,10 +136,10 @@ async function loadDocuments() {
             }
         }
     } catch (error) {
-        console.log('ℹ️ No PDF directory found, skipping PDF loading');
+        console.log('ℹ️ No additional PDF directory found, skipping additional PDF loading');
     }
 
-    // 3. Load local markdown or text files
+    // 4. Load local markdown or text files
     const mdDir = path.join(__dirname, 'documents', 'markdown');
     try {
         await fs.access(mdDir);
@@ -146,7 +162,7 @@ async function loadDocuments() {
         console.log('ℹ️ No markdown directory found, skipping markdown loading');
     }
 
-    // 4. Add some default TransFi documentation if no documents loaded
+    // 5. Add some default TransFi documentation if no documents loaded
     if (documents.length === 0) {
         console.log('📝 Adding default documentation...');
         documents.push(
@@ -217,16 +233,88 @@ app.post('/api/chat', async (req, res) => {
 
         console.log(`💬 Received question: ${question}`);
 
+        // Automatically detect language using langdetect
+        let detectedLanguage = 'en'; // default to English
+        let languageName = 'English';
+
+        try {
+            const detected = detect(question);
+            if (detected && detected.length > 0) {
+                detectedLanguage = detected[0].lang;
+
+                // Map language codes to human-readable names
+                const languageMap = {
+                    'en': 'English',
+                    'bn': 'Bengali/Bangla',
+                    'es': 'Spanish',
+                    'zh': 'Chinese',
+                    'ar': 'Arabic',
+                    'hi': 'Hindi',
+                    'tl': 'Filipino/Tagalog',
+                    'fr': 'French',
+                    'de': 'German',
+                    'it': 'Italian',
+                    'pt': 'Portuguese',
+                    'ru': 'Russian',
+                    'ja': 'Japanese',
+                    'ko': 'Korean',
+                    'th': 'Thai',
+                    'vi': 'Vietnamese',
+                    'id': 'Indonesian',
+                    'ms': 'Malay',
+                    'sw': 'Swahili',          // East Africa (Kenya, Tanzania, Uganda)
+                    'ha': 'Hausa',            // West Africa (Nigeria, Niger, Ghana)
+                    'yo': 'Yoruba',           // West Africa (Nigeria, Benin)
+                    'ig': 'Igbo',             // West Africa (Nigeria)
+                    'am': 'Amharic',          // East Africa (Ethiopia)
+                    'zu': 'Zulu',             // Southern Africa (South Africa)
+                    'xh': 'Xhosa',            // Southern Africa (South Africa)
+                    'af': 'Afrikaans',        // Southern Africa (South Africa)
+                    'so': 'Somali',           // East Africa (Somalia, Ethiopia, Kenya)
+                    'rw': 'Kinyarwanda',      // East Africa (Rwanda, Uganda)
+                    'lg': 'Luganda',          // East Africa (Uganda)
+                    'om': 'Oromo',            // East Africa (Ethiopia)
+                    'ti': 'Tigrinya',         // East Africa (Ethiopia, Eritrea)
+                    'sn': 'Shona',            // Southern Africa (Zimbabwe)
+                    'wo': 'Wolof'             // West Africa (Senegal, Gambia)
+                };
+
+                languageName = languageMap[detectedLanguage] || detectedLanguage.toUpperCase();
+            }
+        } catch (error) {
+            console.log('⚠️ Language detection failed, defaulting to English:', error.message);
+        }
+
+        // Create dynamic language instruction
+        const languageInstruction = detectedLanguage === 'en'
+            ? 'Respond in English. '
+            : `You must respond only in ${languageName} language. Do not use English or any other language. `;
+
+        const enhancedQuery = languageInstruction + question;
+        console.log(`🌐 Detected language: ${detectedLanguage}`);
+
         // Get answer from QA chain
         const response = await qaChain.call({
-            query: question,
+            query: enhancedQuery,
         });
 
-        // Extract sources
-        const sources = response.sourceDocuments?.map(doc => ({
-            content: doc.pageContent.substring(0, 200) + '...',
-            source: doc.metadata?.source || 'TransFi Documentation'
-        })) || [];
+        // Extract sources with FAQ prioritization
+        const sources = response.sourceDocuments?.map(doc => {
+            const source = doc.metadata?.source || 'TransFi Documentation';
+            const isFAQ = source.includes('faq.pdf');
+            return {
+                content: doc.pageContent.substring(0, 200) + '...',
+                source: isFAQ ? '📋 FAQ Document' : source,
+                type: isFAQ ? 'faq' : 'documentation'
+            };
+        }) || [];
+
+        // Sort sources to prioritize FAQ content
+        sources.sort((a, b) => {
+            if (a.type === 'faq' && b.type !== 'faq') return -1;
+            if (a.type !== 'faq' && b.type === 'faq') return 1;
+            return 0;
+        });
 
         console.log(`✅ Generated answer with ${sources.length} sources`);
 
