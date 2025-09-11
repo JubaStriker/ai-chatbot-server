@@ -14,6 +14,7 @@ import * as fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { detect } from 'langdetect';
+import { postEscalationMessage, startSlackBot } from './slackBot';
 
 // Initialize environment variables
 dotenv.config();
@@ -298,6 +299,16 @@ app.post('/api/chat', async (req, res) => {
             query: enhancedQuery,
         });
 
+        // Human intervention for low-confidence answer
+        if (!response.text || response.text.includes("I'm not sure")) {
+            const thread_ts = await postEscalationMessage(question);
+            return res.json({
+                answer: "AI couldn't answer. A human assistant will reply shortly.",
+                escalation: true,
+                thread_ts
+            });
+        }
+
         // Extract sources with FAQ prioritization
         const sources = response.sourceDocuments?.map(doc => {
             const source = doc.metadata?.source || 'TransFi Documentation';
@@ -326,8 +337,11 @@ app.post('/api/chat', async (req, res) => {
 
     } catch (error) {
         console.error('❌ Error processing question:', error);
+        const thread_ts = await postEscalationMessage(req.body.question || "Unknown Question");
         res.status(500).json({
-            error: 'Failed to process your question. Please try again.'
+            answer: "Connecting you to a human assistant...",
+            escalation: true,
+            thread_ts
         });
     }
 });
@@ -410,6 +424,7 @@ app.listen(PORT, async () => {
 
     try {
         await initializeDocumentationSystem();
+        await startSlackBot();
     } catch (error) {
         console.error('Failed to initialize:', error);
         console.log('⚠️ Server is running but documentation system failed to initialize');
