@@ -14,7 +14,8 @@ import * as fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { detect } from 'langdetect';
-import { postEscalationMessage, startSlackBot } from './slackBot';
+import { postEscalationMessage, startSlackBot } from './slackBot.js';
+
 
 // Initialize environment variables
 dotenv.config();
@@ -300,7 +301,23 @@ app.post('/api/chat', async (req, res) => {
         });
 
         // Human intervention for low-confidence answer
-        if (!response.text || response.text.includes("I'm not sure")) {
+        const lowConfidencePhrases = [
+            "I don't know.",
+            "I don't have that information.",
+            "I'm not sure.",
+            "Sorry, I don't know.",
+            "I do not know.",
+            "I do not have that information.",
+            "I'm sorry, I don't know.",
+            "I'm sorry, I do not know."
+        ];
+
+        if (
+            !response.text ||
+            lowConfidencePhrases.some(phrase =>
+                response.text.toLowerCase().includes(phrase.toLowerCase())
+            )
+        ) {
             const thread_ts = await postEscalationMessage(question);
             return res.json({
                 answer: "AI couldn't answer. A human assistant will reply shortly.",
