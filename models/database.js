@@ -129,12 +129,6 @@ const EscalationSchema = new mongoose.Schema({
         required: true,
         index: true
     },
-    threadTs: {
-        type: String,
-        required: true,
-        unique: true,
-        index: true
-    },
     question: {
         type: String,
         required: true

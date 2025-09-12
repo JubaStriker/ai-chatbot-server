@@ -14,8 +14,18 @@ import * as fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { detect } from 'langdetect';
-import { postEscalationMessage, startSlackBot } from './slackBot.js';
+import { postEscalationMessage, startSlackBot, getConnectionStatus } from './slackBot.js';
+import { v4 as uuidv4 } from 'uuid';
 
+// MongoDB imports
+import {
+    connectDB,
+    SessionRepository,
+    MessageRepository,
+    EscalationRepository,
+    KnowledgeCacheRepository,
+    AnalyticsRepository
+} from './models/database.js';
 
 // Initialize environment variables
 dotenv.config();
@@ -29,6 +39,40 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+app.use(async (req, res, next) => {
+    let sessionId = req.headers['x-session-id'] || req.query.sessionId;
+
+    if (!sessionId) {
+        sessionId = uuidv4();
+        res.setHeader('X-Session-Id', sessionId);
+    }
+
+    req.sessionId = sessionId;
+
+    // Get or create session in MongoDB
+    try {
+        let session = await SessionRepository.findById(sessionId);
+        if (!session) {
+            // Extract user info from request
+            const userInfo = {
+                ipAddress: req.ip,
+                userAgent: req.headers['user-agent'],
+                // Add more user info if available
+            };
+            session = await SessionRepository.create(sessionId, userInfo);
+            console.log(`📝 New session created: ${sessionId}`);
+        } else {
+            // Update last activity
+            await SessionRepository.updateActivity(sessionId);
+        }
+        req.session = session;
+    } catch (error) {
+        console.error('Session error:', error);
+    }
+
+    next();
+});
 
 // Global variables to store our vector store and QA chain
 let qaChain = null;
@@ -216,10 +260,23 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Debug endpoint for connection status
+app.get('/api/debug/connections', (req, res) => {
+    try {
+        const status = getConnectionStatus();
+        res.json(status);
+    } catch (error) {
+        console.error('Error getting connection status:', error);
+        res.status(500).json({ error: 'Failed to get connection status' });
+    }
+});
+
 // Main chat endpoint
 app.post('/api/chat', async (req, res) => {
+    const startTime = Date.now();
     try {
         const { question } = req.body;
+        const sessionId = req.sessionId;
 
         if (!question) {
             return res.status(400).json({
@@ -232,6 +289,21 @@ app.post('/api/chat', async (req, res) => {
                 error: 'System is still initializing. Please try again in a moment.'
             });
         }
+
+
+        console.log(`💬 Session ${sessionId} asked: ${question}`);
+
+        // Save user message to MongoDB
+        const userMessage = await MessageRepository.create({
+            sessionId,
+            messageId: uuidv4(),
+            sender: 'user',
+            content: { text: question },
+            metadata: {
+                intent: detectIntent(question), // You can implement intent detection
+                sentiment: 'neutral' // You can add sentiment analysis
+            }
+        });
 
         console.log(`💬 Received question: ${question}`);
 
@@ -287,6 +359,35 @@ app.post('/api/chat', async (req, res) => {
             console.log('⚠️ Language detection failed, defaulting to English:', error.message);
         }
 
+        const cachedAnswer = await KnowledgeCacheRepository.findAnswer(question);
+        if (cachedAnswer && cachedAnswer.confidence > 0.8) {
+            console.log('📦 Using cached answer');
+
+            // Save bot response to MongoDB
+            const botMessage = await MessageRepository.create({
+                sessionId,
+                messageId: uuidv4(),
+                sender: 'bot',
+                senderInfo: { model: 'cache' },
+                content: { text: cachedAnswer.answer },
+                metadata: {
+                    sources: cachedAnswer.sources,
+                    confidence: cachedAnswer.confidence,
+                    responseTime: Date.now() - startTime,
+                    isEscalated: false
+                }
+            });
+
+            return res.json({
+                answer: cachedAnswer.answer,
+                sources: cachedAnswer.sources,
+                sessionId,
+                messageId: botMessage.messageId,
+                type: 'cached_response',
+                timestamp: new Date().toISOString()
+            });
+        }
+
         // Create dynamic language instruction
         const languageInstruction = detectedLanguage === 'en'
             ? 'Respond in English. '
@@ -300,6 +401,8 @@ app.post('/api/chat', async (req, res) => {
             query: enhancedQuery,
         });
 
+        const confidence = response.text && response.text.length > 50 ? 0.8 : 0.3;
+
         // Human intervention for low-confidence answer
         const lowConfidencePhrases = [
             "I don't know.",
@@ -312,13 +415,20 @@ app.post('/api/chat', async (req, res) => {
             "I'm sorry, I do not know."
         ];
 
-        if (
-            !response.text ||
+        const needsEscalation = !response.text ||
             lowConfidencePhrases.some(phrase =>
                 response.text.toLowerCase().includes(phrase.toLowerCase())
-            )
-        ) {
-            const thread_ts = await postEscalationMessage(question);
+            ) || confidence < 0.5;
+
+
+
+        if (needsEscalation) {
+            const userContext = req.session?.userInfo || {};
+
+            const thread_ts = await postEscalationMessage(
+                question,
+                sessionId
+            );
             return res.json({
                 answer: "AI couldn't answer. A human assistant will reply shortly.",
                 escalation: true,
@@ -434,12 +544,65 @@ app.post('/api/search', async (req, res) => {
     }
 });
 
+function detectIntent(question) {
+    const intents = {
+        authentication: ['auth', 'login', 'api key', 'oauth', 'token'],
+        payment: ['payment', 'pay', 'transaction', 'charge', 'refund'],
+        webhook: ['webhook', 'callback', 'notification', 'event'],
+        integration: ['integrate', 'setup', 'install', 'configure'],
+        error: ['error', 'issue', 'problem', 'not working', 'failed']
+    };
+
+    const lowerQuestion = question.toLowerCase();
+    for (const [intent, keywords] of Object.entries(intents)) {
+        if (keywords.some(keyword => lowerQuestion.includes(keyword))) {
+            return intent;
+        }
+    }
+    return 'general';
+}
+
+function determinePriority(question, userContext = {}) {
+    // Determine priority based on keywords or user context
+    const urgentKeywords = ['urgent', 'asap', 'critical', 'down', 'broken'];
+    const lowerQuestion = question.toLowerCase();
+
+    if (urgentKeywords.some(keyword => lowerQuestion.includes(keyword))) {
+        return 'urgent';
+    }
+    if (userContext?.isPremium) {
+        return 'high';
+    }
+    return 'medium';
+}
+
+// Clean up old cache periodically
+setInterval(async () => {
+    try {
+        await KnowledgeCacheRepository.cleanExpired();
+        console.log('🧹 Cleaned expired cache entries');
+    } catch (error) {
+        console.error('Error cleaning cache:', error);
+    }
+}, 60 * 60 * 1000); // Every hour
+
+// Record daily analytics
+setInterval(async () => {
+    try {
+        await AnalyticsRepository.recordDailyMetrics();
+        console.log('📊 Recorded daily analytics');
+    } catch (error) {
+        console.error('Error recording analytics:', error);
+    }
+}, 24 * 60 * 60 * 1000); // Every 24 hours
+
 // Start server
 app.listen(PORT, async () => {
     console.log(`🌐 Server running on http://localhost:${PORT}`);
     console.log('📚 Initializing documentation system...');
 
     try {
+        await connectDB();
         await initializeDocumentationSystem();
         await startSlackBot();
     } catch (error) {
