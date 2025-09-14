@@ -153,17 +153,26 @@ async function loadDocuments() {
         console.error('⚠️ Error loading web documentation:', error.message);
     }
 
-    // 2. Load FAQ PDF from data folder
-    const faqPdfPath = path.join(__dirname, 'data', 'faq.pdf');
+    // 2. Load all PDF files from data folder
+    const dataDir = path.join(__dirname, 'data');
     try {
-        await fs.access(faqPdfPath);
-        console.log('📥 Loading FAQ PDF...');
-        const loader = new PDFLoader(faqPdfPath);
-        const faqDocs = await loader.load();
-        documents.push(...faqDocs);
-        console.log(`✅ Loaded FAQ PDF: ${faqDocs.length} pages`);
+        await fs.access(dataDir);
+        const dataFiles = await fs.readdir(dataDir);
+        for (const file of dataFiles) {
+            if (file.endsWith('.pdf')) {
+                const pdfPath = path.join(dataDir, file);
+                try {
+                    const loader = new PDFLoader(pdfPath);
+                    const pdfDocs = await loader.load();
+                    documents.push(...pdfDocs);
+                    console.log(`✅ Loaded PDF from data: ${file} (${pdfDocs.length} pages)`);
+                } catch (error) {
+                    console.error(`⚠️ Error loading PDF ${file}:`, error.message);
+                }
+            }
+        }
     } catch (error) {
-        console.log('ℹ️ FAQ PDF not found in data folder, skipping FAQ loading');
+        console.log('ℹ️ Data folder not found, skipping PDF loading from data');
     }
 
     // 3. Load other PDF files if documents/pdfs directory exists
