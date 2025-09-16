@@ -14,8 +14,11 @@ import * as fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { detect } from 'langdetect';
+import csv from 'csv-parser';
+import { createReadStream } from 'fs';
 import { postEscalationMessage, startSlackBot, getConnectionStatus } from './slackBot.js';
 import { v4 as uuidv4 } from 'uuid';
+import { analyzeOrderQuery } from './helpers/orderDetection.js';
 
 // MongoDB imports
 import {
@@ -24,8 +27,11 @@ import {
     MessageRepository,
     EscalationRepository,
     KnowledgeCacheRepository,
-    AnalyticsRepository
+    AnalyticsRepository,
+    HumanLearningRepository
 } from './models/database.js';
+import { error } from 'console';
+// Order model will be imported dynamically when needed
 
 // Initialize environment variables
 dotenv.config();
@@ -93,7 +99,7 @@ async function initializeDocumentationSystem() {
         const model = new ChatOpenAI({
             openAIApiKey: process.env.OPENAI_API_KEY,
             temperature: 0.3,
-            modelName: 'gpt-3.5-turbo',
+            modelName: 'gpt-4-turbo',
         });
 
         // Create vector store (in production, use Pinecone, Weaviate, or similar)
@@ -102,27 +108,33 @@ async function initializeDocumentationSystem() {
         // Load documentation from multiple sources
         const documents = await loadDocuments();
 
-        // Split documents into chunks
+        // Split documents into chunks with better overlap for comprehensive coverage
         const textSplitter = new RecursiveCharacterTextSplitter({
-            chunkSize: 1000,
-            chunkOverlap: 200,
+            chunkSize: 1500,        // Increased chunk size for more context
+            chunkOverlap: 400,      // Increased overlap to ensure no data is missed
+            separators: ['\n\n', '\n', '. ', ' ', ''], // Better separation strategy
         });
 
         const splitDocs = await textSplitter.splitDocuments(documents);
-        console.log(`📄 Split into ${splitDocs.length} chunks`);
+        console.log(`📄 Split into ${splitDocs.length} chunks with improved overlap strategy`);
 
         // Add documents to vector store
         await vectorStore.addDocuments(splitDocs);
         console.log('✅ Documents added to vector store');
 
-        // Create the QA chain
+        // Create the QA chain with improved retrieval
         qaChain = RetrievalQAChain.fromLLM(
             model,
             vectorStore.asRetriever({
-                k: 4, // Number of documents to retrieve
+                k: 8,           // Increased from 4 to 8 for more comprehensive search
+                searchType: "similarity",
+                searchKwargs: {
+                    fetchK: 20,  // Fetch more candidates before filtering
+                }
             }),
             {
                 returnSourceDocuments: true,
+                chainType: "stuff", // Ensures all retrieved docs are considered
             }
         );
 
@@ -131,6 +143,112 @@ async function initializeDocumentationSystem() {
 
     } catch (error) {
         console.error('❌ Error initializing documentation system:', error);
+        throw error;
+    }
+}
+
+// Helper function to process CSV files
+async function processCSVFile(filePath) {
+    return new Promise((resolve, reject) => {
+        const results = [];
+        let headers = [];
+
+        createReadStream(filePath)
+            .pipe(csv())
+            .on('data', (data) => {
+                if (headers.length === 0) {
+                    headers = Object.keys(data);
+                    console.log(`📊 CSV Headers: ${headers.join(', ')}`);
+                }
+                results.push(data);
+            })
+            .on('end', () => {
+                // Convert CSV data to readable text format
+                let content = `CSV Data from ${path.basename(filePath)}:\n\n`;
+
+                // Add headers description
+                content += `Columns: ${headers.join(', ')}\n\n`;
+
+                // Convert each row to readable format with better structure
+                results.forEach((row, index) => {
+                    const rowValues = Object.values(row).filter(val => val && val.toString().trim());
+                    if (rowValues.length > 0) {
+                        content += `Entry ${index + 1}:\n`;
+                        Object.entries(row).forEach(([key, value]) => {
+                            if (value && value.toString().trim()) {
+                                content += `${key}: ${value}\n`;
+                            }
+                        });
+
+                        // Add searchable summary for this row
+                        const summary = Object.entries(row)
+                            .filter(([key, value]) => value && value.toString().trim())
+                            .map(([key, value]) => `${key}=${value}`)
+                            .join(', ');
+                        content += `Summary: ${summary}\n`;
+                        content += '---\n';
+                    }
+                });
+
+                resolve(content);
+            })
+            .on('error', reject);
+    });
+}
+
+// Helper function to process XLSX files
+async function processXLSXFile(filePath) {
+    try {
+        console.log(`📈 Processing XLSX file: ${filePath}`);
+
+        // Dynamic import for XLSX to handle ES module issues
+        const { default: XLSXLib } = await import('xlsx');
+        console.log(`📈 XLSX imported:`, typeof XLSXLib, Object.keys(XLSXLib));
+
+        const workbook = XLSXLib.readFile(filePath);
+        let content = `Excel Data from ${path.basename(filePath)}:\n\n`;
+
+        // Process each sheet
+        workbook.SheetNames.forEach((sheetName, sheetIndex) => {
+            content += `Sheet: ${sheetName}\n`;
+            content += '='.repeat(40) + '\n';
+
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonData = XLSXLib.utils.sheet_to_json(worksheet, { header: 1 });
+
+            if (jsonData.length > 0) {
+                // First row as headers
+                const headers = jsonData[0];
+                content += `Columns: ${headers.join(', ')}\n\n`;
+
+                // Process data rows with better structure
+                for (let i = 1; i < jsonData.length; i++) {
+                    const row = jsonData[i];
+                    if (row.some(cell => cell !== undefined && cell !== '')) {
+                        content += `Entry ${i}:\n`;
+                        const rowData = [];
+                        headers.forEach((header, colIndex) => {
+                            const value = row[colIndex];
+                            if (value !== undefined && value !== '') {
+                                content += `${header}: ${value}\n`;
+                                rowData.push(`${header}=${value}`);
+                            }
+                        });
+
+                        // Add searchable summary for this row
+                        if (rowData.length > 0) {
+                            content += `Summary: ${rowData.join(', ')}\n`;
+                        }
+                        content += '---\n';
+                    }
+                }
+            }
+            content += '\n';
+        });
+
+        return content;
+    } catch (error) {
+        console.error(`Error processing XLSX file ${filePath}:`, error);
         throw error;
     }
 }
@@ -153,26 +271,53 @@ async function loadDocuments() {
         console.error('⚠️ Error loading web documentation:', error.message);
     }
 
-    // 2. Load all PDF files from data folder
+    // 2. Load all PDF, CSV, and XLSX files from data folder
     const dataDir = path.join(__dirname, 'data');
     try {
         await fs.access(dataDir);
         const dataFiles = await fs.readdir(dataDir);
         for (const file of dataFiles) {
+            const filePath = path.join(dataDir, file);
+
             if (file.endsWith('.pdf')) {
-                const pdfPath = path.join(dataDir, file);
                 try {
-                    const loader = new PDFLoader(pdfPath);
+                    const loader = new PDFLoader(filePath);
                     const pdfDocs = await loader.load();
                     documents.push(...pdfDocs);
                     console.log(`✅ Loaded PDF from data: ${file} (${pdfDocs.length} pages)`);
                 } catch (error) {
                     console.error(`⚠️ Error loading PDF ${file}:`, error.message);
                 }
+            } else if (file.endsWith('.csv')) {
+                try {
+                    const csvContent = await processCSVFile(filePath);
+                    documents.push(
+                        new Document({
+                            pageContent: csvContent,
+                            metadata: { source: `data/${file}`, type: 'csv' },
+                        })
+                    );
+                    console.log(`✅ Loaded CSV from data: ${file}`);
+                } catch (error) {
+                    console.error(`⚠️ Error loading CSV ${file}:`, error.message);
+                }
+            } else if (file.endsWith('.xlsx') || file.endsWith('.xls')) {
+                try {
+                    const xlsxContent = await processXLSXFile(filePath);
+                    documents.push(
+                        new Document({
+                            pageContent: xlsxContent,
+                            metadata: { source: `data/${file}`, type: 'xlsx' },
+                        })
+                    );
+                    console.log(`✅ Loaded Excel from data: ${file}`);
+                } catch (error) {
+                    console.error(`⚠️ Error loading Excel ${file}:`, error.message);
+                }
             }
         }
     } catch (error) {
-        console.log('ℹ️ Data folder not found, skipping PDF loading from data');
+        console.log('ℹ️ Data folder not found, skipping file loading from data');
     }
 
     // 3. Load other PDF files if documents/pdfs directory exists
@@ -302,15 +447,22 @@ app.post('/api/chat', async (req, res) => {
 
         console.log(`💬 Session ${sessionId} asked: ${question}`);
 
-        // Save user message to MongoDB
+        // Analyze if this is an order/transaction related query
+        const orderAnalysis = analyzeOrderQuery(question);
+
+        // Save user message to MongoDB with enhanced metadata
         const userMessage = await MessageRepository.create({
             sessionId,
             messageId: uuidv4(),
             sender: 'user',
             content: { text: question },
             metadata: {
-                intent: detectIntent(question), // You can implement intent detection
-                sentiment: 'neutral' // You can add sentiment analysis
+                intent: detectIntent(question),
+                sentiment: 'neutral',
+                orderAnalysis: orderAnalysis, // Store order analysis
+                isOrderRelated: orderAnalysis.isOrderRelated,
+                extractedOrderIds: orderAnalysis.orderIdExtraction.orderIds,
+                urgency: orderAnalysis.analysis.urgency
             }
         });
 
@@ -368,6 +520,41 @@ app.post('/api/chat', async (req, res) => {
             console.log('⚠️ Language detection failed, defaulting to English:', error.message);
         }
 
+        // First check if there's a human-answered version
+        const embeddings = new OpenAIEmbeddings({
+            openAIApiKey: process.env.OPENAI_API_KEY,
+        });
+        const humanAnswer = await HumanLearningRepository.findSimilarAnswer(question, embeddings);
+        if (humanAnswer) {
+            console.log('🧑 Using human-learned answer');
+
+            // Save bot response to MongoDB
+            const botMessage = await MessageRepository.create({
+                sessionId,
+                messageId: uuidv4(),
+                sender: 'bot',
+                senderInfo: { model: 'human-learned' },
+                content: { text: humanAnswer.humanAnswer },
+                metadata: {
+                    sources: [{ content: 'Human agent answer', source: 'Human Learning Database' }],
+                    confidence: humanAnswer.confidence,
+                    responseTime: Date.now() - startTime,
+                    isEscalated: false,
+                    learnedFrom: humanAnswer._id
+                }
+            });
+
+            return res.json({
+                answer: humanAnswer.humanAnswer,
+                sources: [{ content: 'Previously answered by human agent', source: 'Human Learning Database', type: 'human_learned' }],
+                sessionId,
+                messageId: botMessage.messageId,
+                type: 'human_learned_response',
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        // Then check regular cache
         const cachedAnswer = await KnowledgeCacheRepository.findAnswer(question);
         if (cachedAnswer && cachedAnswer.confidence > 0.8) {
             console.log('📦 Using cached answer');
@@ -405,29 +592,133 @@ app.post('/api/chat', async (req, res) => {
         const enhancedQuery = languageInstruction + question;
         console.log(`🌐 Detected language: ${detectedLanguage}`);
 
-        // Get answer from QA chain
+        // Handle order-specific queries with special logic
+        if (orderAnalysis.isOrderRelated && orderAnalysis.orderIdExtraction.found) {
+            console.log('📋 Detected order-specific query with Order ID(s)');
+
+            // If order IDs are found, this likely needs human intervention for lookup
+            if (orderAnalysis.recommendedAction === 'escalate_with_order_id') {
+                console.log('⚠️ Order issue detected - escalating with order ID context');
+                const orderContext = `Order IDs found: ${orderAnalysis.orderIdExtraction.orderIds.join(', ')}`;
+
+            }
+        }
+
+        // Enhanced search strategy - first get relevant documents directly
+        console.log('🔍 Performing enhanced document search...');
+        const relevantDocs = await vectorStore.similaritySearch(question, 12); // Get more docs
+        console.log(`📄 Found ${relevantDocs.length} potentially relevant document chunks`);
+
+        // Enhance query based on order analysis
+        let contextualQuery = enhancedQuery;
+        if (orderAnalysis.isOrderRelated) {
+            console.log(orderAnalysis);
+            const { orderIds = [] } = orderAnalysis.orderIdExtraction;
+            let orderData = [];
+            try {
+                const { Order } = await import('./models/order.js');
+                orderData = await Order.find({ orderId: { $in: orderIds } }).select({
+                    orderId: 1,
+                    cryptoAmount: 1,
+                    cryptoTicker: 1,
+                    cryptoUnitPrice: 1,
+                    fiat: 1,
+                    status: 1,
+                    paymentType: 1,
+                    recipientName: 1,
+                    timestamps: 1,
+                    type: 1,
+                    fiatAmount: 1,
+                    fiatTicker: 1,
+                    userId: 1,
+                    error: 1
+                }).lean();
+                console.log(`📋 Found ${orderData.length} orders in database for IDs: ${orderIds.join(', ')}`);
+                console.log('Querying Order IDs:', { orderId: { $in: orderIds } });
+            } catch (error) {
+                console.error('❌ Error fetching order data:', error);
+                orderData = [];
+            }
+
+            console.log(`📋 Order data:`, orderData[0]);
+
+            contextualQuery += `You are a helpful assistant. I will give you transaction/order data in JSON format. 
+                                Your job is to analyze it and explain it in simple English for an end-user who doesn’t know JSON or technical details. 
+
+                                - Do not mention JSON, code, or technical terms. 
+                                - Summarize the important details like: 
+                                • What type of transaction it was (buy/sell crypto, payment, etc.)  
+                                • Currency, amounts, and exchange rate   
+                                • Payment method  
+                                • Status of the transaction (success, failed, pending)  
+                                • Timing (when it started, failed, or completed)  
+                                - Keep the answer short, clear, and easy to understand. 
+                                - Present it like a transaction overall status. 
+                                - If there are any issues (failed, pending), explain what that means and possible next steps.
+
+                                Here is the data: ${JSON.stringify(orderData[0])})`;
+        }
+
+        // Get answer from QA chain with enhanced query
         const response = await qaChain.call({
-            query: enhancedQuery,
+            query: contextualQuery,
         });
 
-        const confidence = response.text && response.text.length > 50 ? 0.8 : 0.3;
+        // Log what documents were actually used
+        console.log('📋 Documents used in response:');
+        response.sourceDocuments?.forEach((doc, index) => {
+            const source = doc.metadata?.source || 'Unknown';
+            const preview = doc.pageContent.substring(0, 100) + '...';
+            console.log(`  ${index + 1}. ${source}: ${preview}`);
+        });
 
-        // Human intervention for low-confidence answer
+        // Improved confidence calculation based on multiple factors
+        let confidence = 0.3; // Base confidence
+
+        if (response.text && response.text.length > 20) {
+            confidence += 0.2; // Has substantial response
+        }
+
+        if (response.sourceDocuments && response.sourceDocuments.length > 0) {
+            confidence += 0.3; // Has source documents
+        }
+
+        if (response.sourceDocuments && response.sourceDocuments.length >= 3) {
+            confidence += 0.2; // Has multiple sources (more reliable)
+        }
+
+        // Check if response contains specific, factual information
+        const hasSpecificInfo = /\b(yes|no|prohibited|allowed|supported|available|USD|EUR|GBP|\d+|\$|%)\b/i.test(response.text);
+        if (hasSpecificInfo) {
+            confidence += 0.2;
+        }
+
+        console.log(`📊 Calculated confidence: ${confidence.toFixed(2)}`);
+
+        // More precise low-confidence phrases
         const lowConfidencePhrases = [
-            "I don't know.",
-            "I don't have that information.",
-            "I'm not sure.",
-            "Sorry, I don't know.",
-            "I do not know.",
-            "I do not have that information.",
-            "I'm sorry, I don't know.",
-            "I'm sorry, I do not know."
+            "I don't know",
+            "I don't have that information",
+            "I'm not sure",
+            "I cannot find",
+            "I don't have specific information",
+            "I'm unable to find",
+            "no information available",
+            "cannot provide that information"
         ];
 
+        // Check for low confidence indicators in response
+        const hasLowConfidencePhrase = lowConfidencePhrases.some(phrase =>
+            response.text.toLowerCase().includes(phrase.toLowerCase())
+        );
+
+        // More intelligent escalation logic
         const needsEscalation = !response.text ||
-            lowConfidencePhrases.some(phrase =>
-                response.text.toLowerCase().includes(phrase.toLowerCase())
-            ) || confidence < 0.5;
+            response.text.length < 10 ||
+            hasLowConfidencePhrase ||
+            (confidence < 0.6 && !hasSpecificInfo); // Only escalate if low confidence AND no specific info
+
+        console.log(`🤖 Escalation needed: ${needsEscalation} (confidence: ${confidence.toFixed(2)}, has specific info: ${hasSpecificInfo})`);
 
 
 
@@ -445,31 +736,62 @@ app.post('/api/chat', async (req, res) => {
             });
         }
 
-        // Extract sources with FAQ prioritization
+        // Extract sources with proper type detection and prioritization
         const sources = response.sourceDocuments?.map(doc => {
             const source = doc.metadata?.source || 'TransFi Documentation';
+            const type = doc.metadata?.type || 'documentation';
             const isFAQ = source.includes('faq.pdf');
+
+            // Determine display source and icon
+            let displaySource = source;
+            if (isFAQ) {
+                displaySource = '📋 FAQ Document';
+            } else if (type === 'csv') {
+                displaySource = `📊 ${source.split('/').pop()}`;
+            } else if (type === 'xlsx') {
+                displaySource = `📈 ${source.split('/').pop()}`;
+            } else if (source.includes('.pdf')) {
+                displaySource = `📄 ${source.split('/').pop()}`;
+            } else if (source.includes('.md')) {
+                displaySource = `📝 ${source.split('/').pop()}`;
+            }
+
             return {
                 content: doc.pageContent.substring(0, 200) + '...',
-                source: isFAQ ? '📋 FAQ Document' : source,
-                type: isFAQ ? 'faq' : 'documentation'
+                source: displaySource,
+                type: isFAQ ? 'faq' : type
             };
         }) || [];
 
-        // Sort sources to prioritize FAQ content
+        // Sort sources to prioritize content types
         sources.sort((a, b) => {
-            if (a.type === 'faq' && b.type !== 'faq') return -1;
-            if (a.type !== 'faq' && b.type === 'faq') return 1;
-            return 0;
+            const typeOrder = { 'faq': 1, 'csv': 2, 'xlsx': 3, 'documentation': 4 };
+            return (typeOrder[a.type] || 5) - (typeOrder[b.type] || 5);
         });
 
         console.log(`✅ Generated answer with ${sources.length} sources`);
 
-        res.json({
+        // Build enhanced response with order analysis
+        const enhancedResponse = {
             answer: response.text,
             sources: sources,
             timestamp: new Date().toISOString()
-        });
+        };
+
+        // Add order analysis if relevant
+        if (orderAnalysis.isOrderRelated) {
+            enhancedResponse.orderAnalysis = {
+                isOrderRelated: true,
+                confidence: orderAnalysis.confidence,
+                type: orderAnalysis.analysis.transactionType,
+                urgency: orderAnalysis.analysis.urgency,
+                hasOrderIds: orderAnalysis.orderIdExtraction.found,
+                orderIds: orderAnalysis.orderIdExtraction.orderIds,
+                recommendedAction: orderAnalysis.recommendedAction
+            };
+        }
+
+        res.json(enhancedResponse);
 
     } catch (error) {
         console.error('❌ Error processing question:', error);
@@ -549,6 +871,63 @@ app.post('/api/search', async (req, res) => {
         console.error('❌ Error searching documents:', error);
         res.status(500).json({
             error: 'Failed to search documents'
+        });
+    }
+});
+
+// Endpoint to view learned Q&A pairs
+app.get('/api/learning/qa-pairs', async (req, res) => {
+    try {
+        const { limit = 20 } = req.query;
+        const qaPairs = await HumanLearningRepository.getTopAnswers(parseInt(limit));
+
+        res.json({
+            total: qaPairs.length,
+            qaPairs: qaPairs.map(qa => ({
+                id: qa._id,
+                question: qa.originalQuestion,
+                answer: qa.humanAnswer,
+                usageCount: qa.usageCount,
+                confidence: qa.confidence,
+                language: qa.language,
+                createdAt: qa.createdAt,
+                lastUsed: qa.lastUsed
+            }))
+        });
+    } catch (error) {
+        console.error('❌ Error fetching learned Q&A pairs:', error);
+        res.status(500).json({
+            error: 'Failed to fetch learned Q&A pairs'
+        });
+    }
+});
+
+// Endpoint to get learning statistics
+app.get('/api/learning/stats', async (req, res) => {
+    try {
+        const stats = await HumanLearningRepository.getStats();
+        res.json(stats[0] || { totalQAs: 0, totalUsage: 0, avgUsage: 0, languages: [] });
+    } catch (error) {
+        console.error('❌ Error fetching learning stats:', error);
+        res.status(500).json({
+            error: 'Failed to fetch learning stats'
+        });
+    }
+});
+
+// Endpoint to manually update the markdown knowledge base file
+app.post('/api/learning/update-markdown', async (req, res) => {
+    try {
+        const filePath = await HumanLearningRepository.updateMarkdownFile();
+        res.json({
+            message: 'Markdown file updated successfully',
+            filePath,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('❌ Error updating markdown file:', error);
+        res.status(500).json({
+            error: 'Failed to update markdown file'
         });
     }
 });

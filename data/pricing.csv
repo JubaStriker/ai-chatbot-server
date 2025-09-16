@@ -1,0 +1,70 @@
+TransFi Pricing schedule,,,,,,,,,
+,,,,Upto 2 million,,2-10 million,,Above 10 million,
+Country,Region,Payment Channel,IN or OUT,TransFi processing fees,Settlement costs,TransFi processing fees,Settlement costs,TransFi processing fees,Settlement costs
+Brazil,LATAM,Bank Transfer,Payin,USD 0.6 + 1.5%,Standard exchange rate + 1%,USD 0.6 + 1.4%,Standard exchange rate + 1%,USD 0.6 + 1.3%,Standard exchange rate + 1%
+Brazil,LATAM,PIX,Payin,USD 0.6 + 1.5%,Standard exchange rate + 1%,USD 0.6 + 1.4%,Standard exchange rate + 1%,USD 0.6 + 1.3%,Standard exchange rate + 1%
+Chile,LATAM,Bank Transfer,Payin,1.80%,Standard exchange rate + 1.4%,1.60%,Standard exchange rate + 1.4%,1.50%,Standard exchange rate + 1.4%
+Colombia,LATAM,Bank Transfer,Payin,2.00%,Live rate,1.80%,Live rate,1.70%,Live rate
+Argentina,LATAM,Bank Transfer,Payin,USD 2.5 + 2.5%,Live rate,USD 2.5 + 2.3%,Live rate,USD 2.5 + 2.15%,Live rate
+Eurozone,Europe,SEPA Bank Transfer,Payin,1.00%,Standard Exchange Rate,0.90%,Standard Exchange Rate,0.80%,Standard Exchange Rate
+Eurozone,Europe,Open Banking (SEPA QR),Payin,1.20%,Standard Exchange Rate,1.10%,Standard Exchange Rate,1.00%,Standard Exchange Rate
+Indonesia,Asia,Bank Transfer,Payin,"IDR 6,000 + 1.2%",Standard Exchange Rate + 0.5%,"IDR 6,000 + 1%",Standard Exchange Rate + 0.5%,"IDR 6,000 + 0.9%",Standard Exchange Rate + 0.5%
+Indonesia,Asia,QRIS,Payin,2.10%,Standard Exchange Rate + 0.5%,2.00%,Standard Exchange Rate + 0.5%,1.95%,Standard Exchange Rate + 0.5%
+Indonesia,Asia,DANA,Payin,4.00%,Standard exchange rate + 0.5%,3.85%,Standard exchange rate + 0.5%,3.75%,Standard exchange rate + 0.5%
+Indonesia,Asia,OVO,Payin,4.00%,Standard exchange rate + 0.5%,3.85%,Standard exchange rate + 0.5%,3.75%,Standard exchange rate + 0.5%
+Indonesia,Asia,ShopeePay App,Payin,4.00%,Standard exchange rate + 0.5%,3.85%,Standard exchange rate + 0.5%,3.75%,Standard exchange rate + 0.5%
+Malaysia,Asia,Bank Transfer,Payin,3.20%,Standard exchange rate + 1.5%,3.10%,Standard exchange rate + 1.5%,3.00%,Standard exchange rate + 1.5%
+Malaysia,Asia,FPX,Payin,3.20%,Standard exchange rate + 1.5%,3.10%,Standard exchange rate + 1.5%,3.00%,Standard exchange rate + 1.5%
+Mexico,LATAM,Bank Transfer,Payin,USD 2.3 + 1%,Standard Exchange Rate + 0.5%,USD 2.3 + 0.9%,Standard Exchange Rate + 0.5%,USD 2.3 + 0.8%,Standard Exchange Rate + 0.5%
+Mexico,LATAM,SPEI,Payin,2.30%,Standard Exchange Rate + 1.8%,2.20%,Standard Exchange Rate + 1.8%,2.10%,Standard Exchange Rate + 1.8%
+Nigeria,Africa,Bank Transfer,Payin,NGN 650 + 2.2%,Live rate,NGN 650 + 2.1%,Live rate,NGN 650 + 2%,Live rate
+Philippines,Asia,Bank Transfer,Payin,PHP 15 + 1.7%,Standard Exchange Rate + 0.3%,PHP 15 + 1.5%,Standard Exchange Rate + 0.3%,PHP 15 + 1.3%,Standard Exchange Rate + 0.3%
+Philippines,Asia,Grabpay,Payin,3.20%,Standard exchange rate + 0.2%,3.10%,Standard exchange rate + 0.2%,3.00%,Standard exchange rate + 0.2%
+Philippines,Asia,Paymaya,Payin,3.20%,Standard exchange rate + 0.2%,3.10%,Standard exchange rate + 0.2%,3.00%,Standard exchange rate + 0.2%
+Philippines,Asia,QRPH,Payin,2.80%,Standard exchange rate + 0.2%,2.70%,Standard exchange rate + 0.2%,2.60%,Standard exchange rate + 0.2%
+Philippines,Asia,Shoppeepay,Payin,3.20%,Standard exchange rate + 0.2%,3.10%,Standard exchange rate + 0.2%,3.00%,Standard exchange rate + 0.2%
+Philippines,Asia,GCash,Payin,4.00%,Standard exchange rate + 0.2%,3.80%,Standard exchange rate + 0.2%,3.70%,Standard exchange rate + 0.2%
+Thailand,Asia,ThaiQR,Payin,2.00%,Standard Exchange Rate + 1.8%,1.80%,Standard Exchange Rate + 1.8%,1.60%,Standard Exchange Rate + 1.8%
+Viet Nam,Asia,Bank Transfer,Payin,1.60%,Live rate,1.50%,Live rate,1.40%,Live rate
+Viet Nam,Asia,Momo,Payin,2.00%,Live rate,1.90%,Live rate,1.85%,Live rate
+Viet Nam,Asia,Viettelpay,Payin,1.60%,Live rate,1.50%,Live rate,1.40%,Live rate
+Viet Nam,Asia,Zalo,Payin,3.00%,Live rate,2.90%,Live rate,2.85%,Live rate
+Viet Nam,Asia,VietQR,Payin,2.30%,Live rate,2.20%,Live rate,2.10%,Live rate
+Kenya,Africa,Bank transfer,Payin,1.70%,Live rate,1.50%,Live rate,1.30%,Live rate
+Kenya,Africa,Mobile money,Payin,3.00%,Live rate,2.80%,Live rate,2.60%,Live rate
+Tanzania,Africa,Mobile money,Payin,3.00%,Live rate,2.80%,Live rate,2.60%,Live rate
+Uganda,Africa,Bank transfer,Payin,1.80%,Live rate,1.60%,Live rate,1.40%,Live rate
+Uganda,Africa,Mobile money,Payin,2.30%,Live rate,2.10%,Live rate,1.90%,Live rate
+Cameroon,Africa,Bank transfer,Payin,2.80%,Live rate,2.60%,Live rate,2.50%,Live rate
+Cameroon,Africa,Mobile money,Payin,2.50%,Live rate,2.40%,Live rate,2.30%,Live rate
+Zambia,Africa,Bank transfer,Payin,1.80%,Live rate,1.60%,Live rate,1.40%,Live rate
+Zambia,Africa,Mobile money,Payin,2.80%,Live rate,2.60%,Live rate,2.40%,Live rate
+Ghana,Africa,Mobile money,Payin,USD 0.5 + 3.8%,Live rate,USD 0.5 + 3.6%,Live rate,USD 0.5 + 3.5%,Live rate
+Canada,LATAM,Bank Transfer,Payin,CAD 3+ 2.5%,Standard exchange rate,CAD 3 + 2.4%,Standard exchange rate,CAD 3+ 2.3%,Standard exchange rate
+Brazil,LATAM,PIX,Payout,USD 0.9 + 1.5%,Standard Exchange Rate - 1%,USD 0.9 + 1.4%,Standard Exchange Rate - 1%,USD 0.9 + 1.3%,Standard Exchange Rate - 1%
+Chile,LATAM,Bank Transfer,Payout,1.80%,Standard Exchange Rate - 1.4%,1.60%,Standard Exchange Rate - 1.4%,1.40%,Standard Exchange Rate - 1.4%
+Colombia,LATAM,Bank Transfer,Payout,2.00%,Live rate,1.80%,Live rate,1.60%,Live rate
+Eurozone,Europe,SEPA Bank Transfer,Payout,EUR 2.5 + 1%,Standard Exchange Rate,EUR 2.5 + 0.9%,Standard Exchange Rate,EUR 2.5 + 0.8%,Standard Exchange Rate
+Indonesia,Asia,Bank Transfer,Payout,"IDR4,000 + 1%",Standard Exchange Rate - 0.2%,"IDR4,000 + 0.85%",Standard Exchange Rate - 0.2%,"IDR4,000 + 0.75%",Standard Exchange Rate - 0.2%
+Malaysia,Asia,Bank Transfer,Payout,3.10%,Standard Exchange Rate - 1.5%,2.90%,Standard Exchange Rate - 1.5%,2.60%,Standard Exchange Rate - 1.5%
+Mexico,LATAM,Bank Transfer,Payout,USD 2.3 + 1%,Standard Exchange Rate - 0.5%,USD 2.3 + 0.9%,Standard Exchange Rate - 0.5%,USD 2.3 + 0.8%,Standard Exchange Rate - 0.5%
+Nigeria,Africa,Bank Transfer,Payout,USD 1+0.5%,Live rate,USD 1+ 0.35%,Live rate,USD 1 + 0.3%,Live rate
+Philippines,Asia,Bank Transfer,Payout,PHP 18 + 1%,Standard Exchange Rate - 0.2%,PHP 18 + 0.85%,Standard Exchange Rate - 0.2%,PHP 18 + 0.75%,Standard Exchange Rate - 0.2%
+Philippines,Asia,GCash,Payout,PHP 18 + 1%,Standard Exchange Rate - 0.2%,PHP 18 + 0.85%,Standard Exchange Rate - 0.2%,PHP 18 + 0.75%,Standard Exchange Rate - 0.2%
+Thailand,Asia,Bank Transfer,Payout,1.40%,Standard exchange rate- 0.8%,1.20%,Standard exchange rate- 0.8%,1.05%,Standard exchange rate- 0.8%
+Viet Nam,Asia,Bank Transfer,Payout,1.20%,Live rate,1.10%,Live rate,1.00%,Live rate
+Kenya,Africa,Bank transfer,Payout,1.20%,Live rate,1.00%,Live rate,0.80%,Live rate
+Kenya,Africa,Mobile money,Payout,3.00%,Live rate,2.80%,Live rate,2.60%,Live rate
+Tanzania,Africa,Mobile money,Payout,3.00%,Live rate,2.80%,Live rate,2.60%,Live rate
+Uganda,Africa,Bank transfer,Payout,1.30%,Live rate,1.05%,Live rate,0.85%,Live rate
+Uganda,Africa,Mobile money,Payout,2.30%,Live rate,2.05%,Live rate,1.85%,Live rate
+Cameroon,Africa,Bank transfer,Payout,1.20%,Live rate,0.95%,Live rate,0.75%,Live rate
+Cameroon,Africa,Mobile money,Payout,2.20%,Live rate,1.95%,Live rate,1.75%,Live rate
+Zambia,Africa,Bank transfer,Payout,1.30%,Live rate,1.05%,Live rate,0.85%,Live rate
+Zambia,Africa,Mobile money,Payout,2.30%,Live rate,2.05%,Live rate,1.85%,Live rate
+Ghana,Africa,Mobile money,Payout,2.70%,Live rate,2.50%,Live rate,2.30%,Live rate
+Argentina,LATAM,Bank Transfer,Payout,USD 3 + 0.5%,Live rate,USD 3 + 0.5%,Live rate,USD 3 + 0.5%,Live rate
+Canada,LATAM,Bank Transfer,Payout,CAD 3+ 2.5%,Standard exchange rate,CAD 3 + 2.4%,Standard exchange rate,CAD 3+ 2.3%,Standard exchange rate
+Pakistan,Asia,Bank Transfer,Payout,9.00%,Standard exchange rate-0.7%,8.80%,Standard exchange rate-0.7%,8.70%,Standard exchange rate-0.7%
+Peru,LATAM,Bank Transfer,Payin,USD1 + 1.8%,Standard exchange rate + 2%,USD1 + 1.65%,Standard exchange rate + 2%,USD1 + 1.4%,Standard exchange rate + 2%
+Peru,LATAM,Bank Transfer,Payout,USD1 + 1.8%,Standard exchange rate - 2%,USD1 + 1.6%,Standard exchange rate - 2%,USD1 + 1.5%,Standard exchange rate - 2%

@@ -3,9 +3,11 @@ const { App } = pkg;
 import WebSocket, { WebSocketServer } from 'ws';
 import dotenv from 'dotenv';
 import { v4 as uuidv4 } from 'uuid';
+import { OpenAIEmbeddings } from '@langchain/openai';
 import {
     MessageRepository,
-    EscalationRepository
+    EscalationRepository,
+    HumanLearningRepository
 } from './models/database.js';
 
 const slackApp = new App({
@@ -20,6 +22,8 @@ const wss = new WebSocketServer({ port: 8081 });
 const connectedClients = new Map(); // sessionId -> Set of {connectionId, ws, connectedAt}
 // Store thread_ts to sessionId mapping for escalations
 const threadToSession = new Map(); // thread_ts -> sessionId
+// Store thread_ts to original question mapping for learning
+const threadToQuestion = new Map(); // thread_ts -> original question
 // Store pending messages for disconnected sessions
 const pendingMessages = new Map(); // sessionId -> array of messages
 
@@ -194,11 +198,39 @@ slackApp.event('message', async ({ event, client }) => {
 
         // Find the session associated with this thread
         const sessionId = threadToSession.get(thread_ts);
+        const originalQuestion = threadToQuestion.get(thread_ts);
         console.log('🎯 Found session for thread:', sessionId);
+        console.log('📚 Original question for learning:', originalQuestion);
 
-        if (sessionId) {
+        if (sessionId && originalQuestion) {
             console.log('✅ Valid thread-to-session mapping found');
             console.log('🔍 Checking if session is currently connected...');
+
+            // ========== SAVE Q&A PAIR FOR AI LEARNING ==========
+            try {
+                const embeddings = new OpenAIEmbeddings({
+                    openAIApiKey: process.env.OPENAI_API_KEY,
+                });
+
+                await HumanLearningRepository.saveQAPair(
+                    originalQuestion,
+                    text, // human answer
+                    sessionId,
+                    thread_ts,
+                    {
+                        slackUserId: user,
+                        agentName: 'Human Agent' // You can enhance this by looking up actual name
+                    },
+                    'en', // You can detect language here too
+                    embeddings // Pass embeddings for semantic matching
+                );
+                console.log('🧠 Q&A pair saved for AI learning!');
+                console.log(`📖 Question: "${originalQuestion}"`);
+                console.log(`💬 Answer: "${text}"`);
+            } catch (error) {
+                console.error('❌ Error saving Q&A pair for learning:', error);
+            }
+            // ================================================
             
             // Check if this session is actually connected
             const isSessionConnected = connectedClients.has(sessionId);
@@ -243,6 +275,23 @@ slackApp.event('message', async ({ event, client }) => {
             // } catch (error) {
             //     console.error('❌ Error saving human reply to database:', error);
             // }
+        } else if (sessionId && !originalQuestion) {
+            console.log('⚠️ Session found but no original question stored - possibly an old thread');
+            // Still send the reply to user but can't learn from it
+            const delivered = sendToClients({
+                type: 'human_reply',
+                user,
+                message: text,
+                thread_ts: thread_ts,
+                sessionId: sessionId,
+                timestamp: new Date().toISOString()
+            }, sessionId);
+
+            if (delivered) {
+                console.log('✅ Message delivered to active session (no learning)');
+            } else {
+                console.log('📥 Message queued - session will receive it when they reconnect (no learning)');
+            }
         } else {
             console.log(`❌ No session mapping found for thread ${thread_ts}`);
             console.log(`🚫 Ignoring message - this thread is not associated with any user session`);
@@ -333,7 +382,9 @@ export async function postEscalationMessage(question, sessionId) {
         // Store the mapping between thread timestamp and session ID
         if (result.ts) {
             threadToSession.set(result.ts, sessionId);
+            threadToQuestion.set(result.ts, question); // Store original question for learning
             console.log(`📝 Mapped thread ${result.ts} to session ${sessionId}`);
+            console.log(`📚 Stored question for learning: "${question}"`);
         }
 
         return result.ts; // thread timestamp for tracking

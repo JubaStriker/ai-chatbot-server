@@ -3,6 +3,10 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 dotenv.config();
 
+const mongooseOptions = {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+};
 // Connect to MongoDB
 export async function connectDB() {
     try {
@@ -10,6 +14,10 @@ export async function connectDB() {
             useNewUrlParser: true,
             useUnifiedTopology: true,
         });
+        mongoose.nucleus = await mongoose.createConnection(
+            process.env.MONGODB_URI_NUCLEUS,
+            mongooseOptions,
+        );
         console.log('✅ MongoDB connected successfully');
     } catch (error) {
         console.error('❌ MongoDB connection error:', error);
@@ -267,11 +275,58 @@ const FeedbackSchema = new mongoose.Schema({
     }
 });
 
+// Human Learning Schema - Stores Q&A pairs from human interventions
+const HumanLearningSchema = new mongoose.Schema({
+    originalQuestion: {
+        type: String,
+        required: true,
+        index: true
+    },
+    humanAnswer: {
+        type: String,
+        required: true
+    },
+    sessionId: {
+        type: String,
+        required: true
+    },
+    threadTs: String, // Slack thread timestamp
+    humanAgent: {
+        slackUserId: String,
+        agentName: String
+    },
+    confidence: {
+        type: Number,
+        default: 1.0 // Human answers have high confidence
+    },
+    usageCount: {
+        type: Number,
+        default: 0
+    },
+    lastUsed: Date,
+    isActive: {
+        type: Boolean,
+        default: true
+    },
+    tags: [String], // For categorization
+    language: String, // Detected language of the question
+    createdAt: {
+        type: Date,
+        default: Date.now
+    },
+    updatedAt: {
+        type: Date,
+        default: Date.now
+    }
+});
+
 // Create indexes for better performance
 MessageSchema.index({ sessionId: 1, timestamp: -1 });
 MessageSchema.index({ 'metadata.threadTs': 1 });
 EscalationSchema.index({ status: 1, createdAt: -1 });
 KnowledgeCacheSchema.index({ question: 'text' });
+HumanLearningSchema.index({ originalQuestion: 'text' });
+HumanLearningSchema.index({ isActive: 1, usageCount: -1 });
 
 // Create models
 export const Session = mongoose.model('Session', SessionSchema);
@@ -280,6 +335,7 @@ export const Escalation = mongoose.model('Escalation', EscalationSchema);
 export const Analytics = mongoose.model('Analytics', AnalyticsSchema);
 export const KnowledgeCache = mongoose.model('KnowledgeCache', KnowledgeCacheSchema);
 export const Feedback = mongoose.model('Feedback', FeedbackSchema);
+export const HumanLearning = mongoose.model('HumanLearning', HumanLearningSchema);
 
 // ============= REPOSITORY FUNCTIONS =============
 
@@ -517,5 +573,275 @@ export const AnalyticsRepository = {
         return await Analytics.find({
             date: { $gte: startDate }
         }).sort({ date: -1 });
+    }
+};
+
+// Human Learning Management
+export const HumanLearningRepository = {
+    async saveQAPair(originalQuestion, humanAnswer, sessionId, threadTs, humanAgent, language = 'en', embeddings = null) {
+        // Check if similar Q&A already exists
+        const existing = await HumanLearning.findOne({
+            originalQuestion,
+            isActive: true
+        });
+
+        let questionEmbedding = null;
+        if (embeddings) {
+            try {
+                console.log('🧮 Generating embedding for question...');
+                questionEmbedding = await embeddings.embedQuery(originalQuestion);
+                console.log('✅ Embedding generated successfully');
+            } catch (error) {
+                console.error('❌ Error generating embedding:', error);
+            }
+        }
+
+        if (existing) {
+            // Update existing answer if newer
+            const updateData = {
+                humanAnswer,
+                humanAgent,
+                updatedAt: new Date()
+            };
+
+            // Add embedding if generated
+            if (questionEmbedding) {
+                updateData.questionEmbedding = questionEmbedding;
+            }
+
+            return await HumanLearning.findByIdAndUpdate(existing._id, updateData, { new: true });
+        }
+
+        // Create new Q&A pair
+        const qaPairData = {
+            originalQuestion,
+            humanAnswer,
+            sessionId,
+            threadTs,
+            humanAgent,
+            language
+        };
+
+        // Add embedding if generated
+        if (questionEmbedding) {
+            qaPairData.questionEmbedding = questionEmbedding;
+        }
+
+        const qaPair = new HumanLearning(qaPairData);
+        const savedPair = await qaPair.save();
+
+        // Also save to markdown file for AI training
+        try {
+            await this.updateMarkdownFile();
+            console.log('📝 Markdown file updated with new Q&A pair');
+        } catch (error) {
+            console.error('❌ Error updating markdown file:', error);
+        }
+
+        return savedPair;
+    },
+
+    async findSimilarAnswer(question, embeddings = null) {
+        // First try exact match
+        let match = await HumanLearning.findOne({
+            originalQuestion: question,
+            isActive: true
+        });
+
+        if (match) {
+            console.log('🎯 Found exact match for question');
+            // Update usage stats
+            await HumanLearning.findByIdAndUpdate(match._id, {
+                $inc: { usageCount: 1 },
+                lastUsed: new Date()
+            });
+            return match;
+        }
+
+        // If embeddings provided, use semantic similarity
+        if (embeddings) {
+            try {
+                console.log('🔍 Searching for semantically similar questions...');
+                const questionEmbedding = await embeddings.embedQuery(question);
+
+                // Get all active Q&A pairs with embeddings
+                const allQAs = await HumanLearning.find({
+                    isActive: true,
+                    questionEmbedding: { $exists: true, $ne: null }
+                });
+
+                let bestMatch = null;
+                let bestSimilarity = 0;
+                const SIMILARITY_THRESHOLD = 0.82; // Increased threshold for higher precision
+
+                console.log(`🎯 Comparing against ${allQAs.length} stored Q&A pairs with threshold ${SIMILARITY_THRESHOLD}`);
+
+                for (const qa of allQAs) {
+                    if (qa.questionEmbedding && qa.questionEmbedding.length > 0) {
+                        const similarity = this.calculateCosineSimilarity(questionEmbedding, qa.questionEmbedding);
+                        console.log(`📊 Similarity between "${question}" and "${qa.originalQuestion}": ${similarity.toFixed(3)}`);
+
+                        if (similarity > bestSimilarity && similarity >= SIMILARITY_THRESHOLD) {
+                            bestSimilarity = similarity;
+                            bestMatch = qa;
+                        }
+                    }
+                }
+
+                if (bestMatch) {
+                    console.log(`✅ Found semantic match with similarity ${bestSimilarity.toFixed(3)}: "${bestMatch.originalQuestion}"`);
+                    // Update usage stats
+                    await HumanLearning.findByIdAndUpdate(bestMatch._id, {
+                        $inc: { usageCount: 1 },
+                        lastUsed: new Date()
+                    });
+                    return bestMatch;
+                } else {
+                    console.log(`❌ No semantic match found above threshold ${SIMILARITY_THRESHOLD}`);
+                    console.log('🚫 NOT falling back to text search - maintaining answer quality');
+                }
+            } catch (error) {
+                console.error('Error in semantic search:', error);
+            }
+        } else {
+            console.log('⚠️ No embeddings provided - cannot perform semantic matching');
+        }
+
+        // NO FALLBACK - Return null if no high-quality semantic match found
+        console.log('🎯 No human-learned answer found - will proceed to AI/escalation');
+        return null;
+    },
+
+    // Helper function to calculate cosine similarity
+    calculateCosineSimilarity(vecA, vecB) {
+        if (!vecA || !vecB || vecA.length !== vecB.length) return 0;
+
+        let dotProduct = 0;
+        let normA = 0;
+        let normB = 0;
+
+        for (let i = 0; i < vecA.length; i++) {
+            dotProduct += vecA[i] * vecB[i];
+            normA += vecA[i] * vecA[i];
+            normB += vecB[i] * vecB[i];
+        }
+
+        if (normA === 0 || normB === 0) return 0;
+
+        return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+    },
+
+    async getTopAnswers(limit = 10) {
+        return await HumanLearning.find({ isActive: true })
+            .sort({ usageCount: -1, createdAt: -1 })
+            .limit(limit)
+            .lean();
+    },
+
+    async deactivateAnswer(id) {
+        return await HumanLearning.findByIdAndUpdate(id, {
+            isActive: false,
+            updatedAt: new Date()
+        });
+    },
+
+    async getStats() {
+        return await HumanLearning.aggregate([
+            { $match: { isActive: true } },
+            {
+                $group: {
+                    _id: null,
+                    totalQAs: { $sum: 1 },
+                    totalUsage: { $sum: '$usageCount' },
+                    avgUsage: { $avg: '$usageCount' },
+                    languages: { $addToSet: '$language' }
+                }
+            }
+        ]);
+    },
+
+    async updateMarkdownFile() {
+        const fs = await import('fs/promises');
+        const path = await import('path');
+        const { fileURLToPath } = await import('url');
+
+        // Get all active Q&A pairs
+        const qaPairs = await HumanLearning.find({ isActive: true })
+            .sort({ createdAt: -1 })
+            .lean();
+
+        // Generate markdown content
+        let markdownContent = `# Human-Learned Q&A Knowledge Base
+
+This document contains questions and answers that were provided by human agents when the AI couldn't answer user queries. This knowledge base helps the AI provide better responses in the future.
+
+**Last Updated:** ${new Date().toISOString()}
+**Total Q&A Pairs:** ${qaPairs.length}
+
+---
+
+`;
+
+        // Group by language
+        const qaPairsByLanguage = {};
+        qaPairs.forEach(qa => {
+            const lang = qa.language || 'en';
+            if (!qaPairsByLanguage[lang]) {
+                qaPairsByLanguage[lang] = [];
+            }
+            qaPairsByLanguage[lang].push(qa);
+        });
+
+        // Generate content for each language
+        Object.entries(qaPairsByLanguage).forEach(([language, pairs]) => {
+            const languageNames = {
+                'en': 'English',
+                'bn': 'Bengali/Bangla',
+                'es': 'Spanish',
+                'fr': 'French',
+                'de': 'German'
+            };
+
+            markdownContent += `## ${languageNames[language] || language.toUpperCase()} Questions\n\n`;
+
+            pairs.forEach((qa, index) => {
+                markdownContent += `### Q${index + 1}: ${qa.originalQuestion}\n\n`;
+                markdownContent += `**Answer:** ${qa.humanAnswer}\n\n`;
+                markdownContent += `**Usage Count:** ${qa.usageCount}\n`;
+                markdownContent += `**Date Added:** ${qa.createdAt.toISOString().split('T')[0]}\n\n`;
+                markdownContent += `---\n\n`;
+            });
+        });
+
+        // Add footer
+        markdownContent += `
+## Notes
+
+- This knowledge base is automatically generated from human agent interactions
+- Questions are matched using AI embeddings for semantic similarity
+- High usage count indicates frequently asked questions
+- This file is used as a source document for the AI system
+
+`;
+
+        // Write to data folder
+        try {
+            const __filename = fileURLToPath(import.meta.url);
+            const __dirname = path.dirname(__filename);
+            const dataDir = path.join(__dirname, '..', 'data');
+            const filePath = path.join(dataDir, 'human-learned-qa.md');
+
+            // Ensure data directory exists
+            await fs.mkdir(dataDir, { recursive: true });
+
+            // Write the file
+            await fs.writeFile(filePath, markdownContent, 'utf-8');
+            console.log(`📄 Markdown file written to: ${filePath}`);
+
+            return filePath;
+        } catch (error) {
+            console.error('Error writing markdown file:', error);
+            throw error;
+        }
     }
 };
