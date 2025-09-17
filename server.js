@@ -258,17 +258,31 @@ async function loadDocuments() {
     const documents = [];
 
     // 1. Load from TransFi documentation website
-    try {
-        console.log('📥 Loading TransFi documentation...');
-        const loader = new CheerioWebBaseLoader(
-            'https://docs.transfi.com/docs/welcome-to-transfi-developer-hub'
-        );
+    const urls = [
+        'https://www.transfi.com/help-center-articles/how-can-a-business-start-with-transfi#help',
+        'https://www.transfi.com/help-center-articles/i-have-successful-payments-in-my-account-how-can-i-withdraw-the-funds#help',
+        'https://www.transfi.com/help-center-articles/what-is-meant-by-prefunding-am-i-sending-funds-to-transfi-first#help',
+        'https://www.transfi.com/help-center-articles/how-can-i-get-a-wallet-address#help',
+        'https://www.transfi.com/help-center-articles/what-is-the-kyb-process---what-is-transfi-kyb-process',
+        'https://www.transfi.com/help-center-articles/how-do-i-request-an-account-statement-what-are-the-functions-of-transfis-dashboard#help',
+        'https://www.transfi.com/help-center-articles/are-there-transaction-limits#help',
+        'https://www.transfi.com/help-center-articles/how-long-does-it-take-for-a-local-currency-payout-to-be-received-by-the-beneficiary#help',
+        'https://www.transfi.com/help-center-articles/which-currencies-and-digital-assets-are-supported-in-collections-product#help',
+        'https://www.transfi.com/help-center-articles/is-kyc-mandatory-for-my-customers#help'
+    ];
 
-        const webDocs = await loader.load();
-        documents.push(...webDocs);
-        console.log(`✅ Loaded ${webDocs.length} web documents`);
-    } catch (error) {
-        console.error('⚠️ Error loading web documentation:', error.message);
+    console.log(`📥 Loading ${urls.length} TransFi documentation URLs...`);
+
+    for (const url of urls) {
+        try {
+            console.log(`Loading: ${url}`);
+            const loader = new CheerioWebBaseLoader(url);
+            const webDocs = await loader.load();
+            documents.push(...webDocs);
+            console.log(`✅ Loaded ${webDocs.length} documents from ${url}`);
+        } catch (error) {
+            console.error(`⚠️ Error loading ${url}:`, error.message);
+        }
     }
 
     // 2. Load all PDF, CSV, and XLSX files from data folder
@@ -360,44 +374,6 @@ async function loadDocuments() {
         }
     } catch (error) {
         console.log('ℹ️ No markdown directory found, skipping markdown loading');
-    }
-
-    // 5. Add some default TransFi documentation if no documents loaded
-    if (documents.length === 0) {
-        console.log('📝 Adding default documentation...');
-        documents.push(
-            new Document({
-                pageContent: `
-                    TransFi API Documentation
-                    
-                    Authentication:
-                    TransFi uses OAuth 2.0 and API key authentication. To authenticate:
-                    1. Register your application in the TransFi dashboard
-                    2. Obtain your API key and secret
-                    3. Include the API key in the Authorization header: "Bearer YOUR_API_KEY"
-                    
-                    Base URL: https://api.transfi.com/v1
-                    
-                    Payment Methods:
-                    - ACH Transfers: 1-3 business days processing
-                    - Wire Transfers: Same-day processing available
-                    - Credit/Debit Cards: Instant processing
-                    - Digital Wallets: Instant processing
-                    
-                    Webhooks:
-                    Configure webhooks in your dashboard to receive real-time notifications.
-                    Webhook events include: payment.created, payment.completed, payment.failed
-                    
-                    Error Codes:
-                    - 400: Bad Request - Invalid parameters
-                    - 401: Unauthorized - Invalid or missing API key
-                    - 404: Not Found - Resource doesn't exist
-                    - 429: Too Many Requests - Rate limit exceeded
-                    - 500: Internal Server Error
-                `,
-                metadata: { source: 'default-docs' },
-            })
-        );
     }
 
     return documents;
@@ -606,7 +582,7 @@ app.post('/api/chat', async (req, res) => {
 
         // Enhanced search strategy - first get relevant documents directly
         console.log('🔍 Performing enhanced document search...');
-        const relevantDocs = await vectorStore.similaritySearch(question, 12); // Get more docs
+        const relevantDocs = await vectorStore.similaritySearch(question, 20); // Get more docs
         console.log(`📄 Found ${relevantDocs.length} potentially relevant document chunks`);
 
         // Enhance query based on order analysis
@@ -655,6 +631,8 @@ app.post('/api/chat', async (req, res) => {
                                 - Keep the answer short, clear, and easy to understand. 
                                 - Present it like a transaction overall status. 
                                 - If there are any issues (failed, pending), explain what that means and possible next steps.
+                                - If the order status if fund_failed/assest_failed tell the user that, he can raise a support ticket with the error code for more details using this link https://transfi-customersupport.freshdesk.com/support/tickets/new, also highlight this link for good visibility.
+                                
 
                                 Here is the data: ${JSON.stringify(orderData[0])})`;
         }
@@ -699,6 +677,7 @@ app.post('/api/chat', async (req, res) => {
         const lowConfidencePhrases = [
             "I don't know",
             "I don't have that information",
+            "I don't have information",
             "I'm not sure",
             "I cannot find",
             "I don't have specific information",

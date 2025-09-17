@@ -2,6 +2,7 @@
 
 /**
  * Detects if user text is related to orders, transactions, or payments
+ * Now only detects based on actual order ID presence - no keyword detection
  * @param {string} text - User input text
  * @returns {object} Detection results with type and confidence
  */
@@ -15,112 +16,18 @@ export function detectTransactionRelated(text) {
         };
     }
 
-    const lowerText = text.toLowerCase().trim();
-
-    // Transaction/Order related keywords with weights
-    const keywords = {
-        // Order-related (high weight)
-        order: { weight: 0.9, category: 'order' },
-        'order id': { weight: 1.0, category: 'order' },
-        'order number': { weight: 1.0, category: 'order' },
-        'order status': { weight: 1.0, category: 'order' },
-        'my order': { weight: 0.95, category: 'order' },
-
-        // Transaction-related (high weight)
-        transaction: { weight: 0.9, category: 'transaction' },
-        'transaction id': { weight: 1.0, category: 'transaction' },
-        'transaction status': { weight: 1.0, category: 'transaction' },
-        'my transaction': { weight: 0.95, category: 'transaction' },
-        'txn': { weight: 0.8, category: 'transaction' },
-        'tx': { weight: 0.7, category: 'transaction' },
-
-        // Payment-related (medium-high weight)
-        payment: { weight: 0.8, category: 'payment' },
-        'payment status': { weight: 0.9, category: 'payment' },
-        'payment failed': { weight: 0.95, category: 'payment' },
-        'payment pending': { weight: 0.95, category: 'payment' },
-        'payment successful': { weight: 0.9, category: 'payment' },
-        'payment issue': { weight: 0.9, category: 'payment' },
-        paid: { weight: 0.6, category: 'payment' },
-        unpaid: { weight: 0.7, category: 'payment' },
-
-        // Money/Transfer related (medium weight)
-        transfer: { weight: 0.7, category: 'transfer' },
-        'money transfer': { weight: 0.8, category: 'transfer' },
-        send: { weight: 0.5, category: 'transfer' },
-        receive: { weight: 0.5, category: 'transfer' },
-        'sent money': { weight: 0.8, category: 'transfer' },
-        'received money': { weight: 0.8, category: 'transfer' },
-
-        // Status-related (medium weight)
-        status: { weight: 0.6, category: 'status' },
-        pending: { weight: 0.7, category: 'status' },
-        failed: { weight: 0.8, category: 'status' },
-        completed: { weight: 0.7, category: 'status' },
-        processing: { weight: 0.8, category: 'status' },
-        cancelled: { weight: 0.8, category: 'status' },
-        refund: { weight: 0.8, category: 'status' },
-        refunded: { weight: 0.8, category: 'status' },
-
-        // Problem indicators (high weight)
-        'not received': { weight: 0.9, category: 'issue' },
-        'didn\'t receive': { weight: 0.9, category: 'issue' },
-        'haven\'t received': { weight: 0.9, category: 'issue' },
-        'missing': { weight: 0.8, category: 'issue' },
-        'lost': { weight: 0.7, category: 'issue' },
-        'stuck': { weight: 0.8, category: 'issue' },
-        'delayed': { weight: 0.8, category: 'issue' },
-
-        // Question indicators (medium weight)
-        'where is': { weight: 0.6, category: 'inquiry' },
-        'when will': { weight: 0.6, category: 'inquiry' },
-        'why is': { weight: 0.6, category: 'inquiry' },
-        'how long': { weight: 0.6, category: 'inquiry' },
-        'what happened': { weight: 0.7, category: 'inquiry' },
-        'what\'s wrong': { weight: 0.8, category: 'inquiry' }
-    };
-
-    let totalScore = 0;
-    let matchedKeywords = [];
-    let primaryCategory = null;
-    let categoryScores = {};
-
-    // Check for keyword matches
-    Object.entries(keywords).forEach(([keyword, data]) => {
-        if (lowerText.includes(keyword)) {
-            totalScore += data.weight;
-            matchedKeywords.push(keyword);
-
-            // Track category scores
-            if (!categoryScores[data.category]) {
-                categoryScores[data.category] = 0;
-            }
-            categoryScores[data.category] += data.weight;
-        }
-    });
-
-    // Determine primary category
-    if (Object.keys(categoryScores).length > 0) {
-        primaryCategory = Object.entries(categoryScores)
-            .sort(([, a], [, b]) => b - a)[0][0];
-    }
-
-    // Normalize confidence (cap at 1.0)
-    const confidence = Math.min(totalScore, 1.0);
-
-    // Determine if transaction-related (threshold: 0.5)
-    const isTransactionRelated = confidence >= 0.5;
-
+    // This function now only returns false - actual detection is done via order ID extraction
+    // This prevents false positives from general questions about payments/transactions
     return {
-        isTransactionRelated,
-        confidence: parseFloat(confidence.toFixed(2)),
-        type: isTransactionRelated ? primaryCategory : null,
-        keywords: matchedKeywords,
-        categoryScores,
+        isTransactionRelated: false,
+        confidence: 0,
+        type: null,
+        keywords: [],
+        categoryScores: {},
         analysis: {
-            totalScore: parseFloat(totalScore.toFixed(2)),
+            totalScore: 0,
             threshold: 0.5,
-            primaryCategory
+            primaryCategory: null
         }
     };
 }

@@ -1,0 +1,312 @@
+Area,Country,Currency,Channel Type,Payin/ Payout,Payment Method,
+APAC,Bangladesh,BDT,Mobile Money,Payin,Bkash,
+APAC,Bangladesh,BDT,Mobile Money,Payin,Nagad,
+APAC,Bangladesh,BDT,Mobile Money,Payout,Bkash,
+APAC,Bangladesh,BDT,Mobile Money,Payout,Nagad,
+APAC,Hong Kong,USD,Bank Transfer (CHATS),Payout,"HSBC Bank
+Hang Seng Bank
+Bank of East Asia (BEA)
+DBS
+Standard Chartered Hong Kong",
+APAC,Hong Kong,HKD,Bank Transfer (FPS),Payout,"HSBC Bank
+Hang Seng Bank
+Bank of East Asia (BEA)
+DBS
+Standard Chartered Hong Kong",
+APAC,Japan,JPY,Bank Transfer,Payout,"MUFG Bank
+Mizuho Bank
+Sumitomo Mitsui Banking Corporation
+Resona Bank
+Kansai Mirai Bank", 
+APAC,Indonesia,IDR,Bank Transfer,Payin,"BCA
+Mandiri
+BNI
+BRI
+BSI
+Permata
+CIMB",
+APAC,Indonesia,IDR,Local Wallets,Payin,Dana,
+APAC,Indonesia,IDR,Local Wallets,Payin,OVO,
+APAC,Indonesia,IDR,QR,Payin,QRIS,
+APAC,Indonesia,IDR,Local Wallets,Payin,ShopeePay ,
+APAC,Indonesia,IDR,Bank Transfer,Payout,"BCA
+Mandiri
+BNI
+BRI
+BSI
+Permata
+CIMB",
+APAC,Indonesia,IDR,Local Wallets,Payout,Dana,
+APAC,Indonesia,IDR,Local Wallets,Payout,GoPay,
+APAC,Indonesia,IDR,Local Wallets,Payout,OVO,
+APAC,Indonesia,IDR,Local Wallets,Payout,ShopeePay,
+APAC,Malaysia,MYR,Bank Transfer,Payin,"CIMB
+Bank Transfer (FPX)
+Public Bank
+Hong Leong
+RHB
+Maybank Berhad",
+APAC,Malaysia,MYR,Local Wallets,Payin,Boost,
+APAC,Malaysia,MYR,Local Wallets,Payin,DuitNow,
+APAC,Malaysia,MYR,Bank Transfer,Payin,Online Banking,
+APAC,Malaysia,MYR,Local Wallets,Payin,ShopeePay,
+APAC,Malaysia,MYR,Local Wallets,Payin,TouchnGo,
+APAC,Malaysia,MYR,Bank Transfer,Payout,"CIMB
+Bank Transfer (FPX)
+Public Bank
+Hong Leong
+RHB
+Maybank Berhad",
+APAC,Malaysia,MYR,Bank Transfer,Payout,Online Banking,
+APAC,Pakistan,PKR,Bank Transfer,Payout,"Habib Bank
+United Bank
+MCB Bank
+Allied Bank
+Askari Bank
+Meezan Bank",
+APAC,Philippines,PHP,Bank Transfer,Payin,"Bank Transfer
+BDO
+Landbank
+Metrobank
+UBP
+BPI",
+APAC,Philippines,PHP,Local Wallets,Payin,GCash,
+APAC,Philippines,PHP,Local Wallets,Payin,GrabPay,
+APAC,Philippines,PHP,Wallets,Payin,Maya,
+APAC,Philippines,PHP,Wallets,Payin,PayMaya,
+APAC,Philippines,PHP,QR,Payin,QR PH,
+APAC,Philippines,PHP,Local Wallets,Payin,ShopeePay,
+APAC,Philippines,PHP,Bank Transfer,Payout,"Bank Transfer
+BDO
+Landbank
+Metrobank
+UBP
+BPI",
+APAC,Philippines,PHP,Local Wallets,Payout,GCash,
+APAC,Philippines,PHP,Local Wallets,Payout,GrabPay,
+APAC,Philippines,PHP,Wallets,Payout,PayMaya,
+APAC,Philippines,PHP,Local Wallets,Payout,ShopeePay,
+APAC,Thailand,THB,Bank Transfer,Payin,"PromptPay
+Bangkok Bank
+Kasikorn Bank
+Krungsri Bank",
+APAC,Thailand,THB,QR,Payin,ThaiQR (PromptPay),
+APAC,Thailand,THB,Bank Transfer,Payout,"PromptPay
+Bangkok Bank
+Kasikorn Bank
+Krungsri Bank",
+APAC,Vietnam,VND,Bank Transfer,Payin,"Techcom Bank
+DongA Bank
+Exim Bank
+Vietcombank
+Sacombank
+Vietin Bank
+MCB Bank Vietnam
+BIDV Bank",
+APAC,Vietnam,VND,Wallets,Payin,Momo,
+APAC,Vietnam,VND,QR,Payin,VietQR,
+APAC,Vietnam,VND,Wallets,Payin,ViettelPay,
+APAC,Vietnam,VND,Wallets,Payin,ZaloPay,
+APAC,Vietnam,VND,Bank Transfer,Payout,"Techcom Bank
+DongA Bank
+Exim Bank
+Vietcombank
+Sacombank
+Vietin Bank
+MCB Bank Vietnam
+BIDV Bank",
+APAC,Vietnam,VND,Wallets,Payout,ViettelPay,
+APAC,Vietnam,VND,Wallets,Payout,ZaloPay,
+APAC,Cambodia,KHR,QR ,Payin,KHQR,
+APAC,Cambodia,KHR,Bank Transfer,Payout,ACLEDA Bank,
+APAC,Cambodia,KHR,Bank Transfer,Payout,Cambodian Commercial Bank,
+APAC,Cambodia,KHR,Bank Transfer,Payout,Foreign Trade Bank of Cambodia,
+APAC,China,CNY,Bank Transfer,Payout,"Bank of China
+Industrial and Commercial Bank of China
+China Construction Bank
+Agricultural Bank of China
+Bank of Communications
+China Merchants Bank
+Industrial Bank Co Ltd",
+APAC,China,CNY,Wallets,Payout,Alipay,
+APAC,India,INR,Bank Transfer,Payout,"UPI
+IMPS
+RTGS
+HDFC Bank
+ICICI Bank
+Axis Bank
+Yes Bank
+Federal Bank",
+Europe,Eurozone,EUR,Bank Transfer,Payin,Open Banking,
+Europe,Eurozone,EUR,Bank Transfer (SEPA),Payin,SEPA,
+Europe,Eurozone,EUR,Bank Transfer (SEPA),Payin,SEPA QR,
+Europe,Eurozone,EUR,Local Wallets,Payin,Neteller,
+Europe,Eurozone,EUR,Local Wallets,Payin,Skrill,
+Europe,Eurozone,EUR,Local Wallets,Payout,Neteller,
+Europe,Eurozone,EUR,Local Wallets,Payout,Skrill,
+Europe,Eurozone,EUR,Bank Transfer (SEPA),Payout,SEPA,
+Europe,Poland,PLN,Local Wallets,Payin,Blik,
+Europe,Andorra,EUR,Bank Transfer (SEPA),Payout,"Andbank
+Crèdit Andorrà",
+Europe,Austria,EUR,Bank Transfer (SEPA),Payout,"Erste Group Bank
+Raiffeisen Bank International",
+Europe,Belgium,EUR,Bank Transfer (SEPA),Payout,"KBC Group
+Belfius Bank",
+Europe,Bulgaria,EUR,Bank Transfer (SEPA),Payout,"UniCredit Bulbank
+DSK Bank",
+Europe,Croatia,EUR,Bank Transfer (SEPA),Payout,"Zagrebačka Banka
+Privredna Banka Zagreb",
+Europe,Cyprus,EUR,Bank Transfer (SEPA),Payout,"Bank of Cyprus
+Hellenic Bank",
+Europe,Czechia,EUR,Bank Transfer (SEPA),Payout,"Česká spořitelna
+Komerční banka",
+Europe,Denmark,EUR,Bank Transfer (SEPA),Payout,"Danske Bank
+Nykredit",
+Europe,Estonia,EUR,Bank Transfer (SEPA),Payout,"SEB Pank
+Swedbank",
+Europe,Finland,EUR,Bank Transfer (SEPA),Payout,"OP Financial Group
+Nordea Bank",
+Europe,France,EUR,Bank Transfer (SEPA),Payout,"BNP Paribas
+Crédit Agricole Group",
+Europe,Germany,EUR,Bank Transfer (SEPA),Payout,"Deutsche Bank
+Commerzbank",
+Europe,Greece,EUR,Bank Transfer (SEPA),Payout,"National Bank of Greece
+Alpha Bank",
+Europe,Hungary,EUR,Bank Transfer (SEPA),Payout,"OTP Bank
+K&H Bank",
+Europe,Iceland,EUR,Bank Transfer (SEPA),Payout,"Landsbankinn
+Íslandsbanki
+",
+Europe,Ireland,EUR,Bank Transfer (SEPA),Payout,"Bank of Ireland
+AIB Group
+",
+Europe,Italy,EUR,Bank Transfer (SEPA),Payout,"UniCredit
+Intesa Sanpaolo
+",
+Europe,Latvia,EUR,Bank Transfer (SEPA),Payout,SEB banka,
+Europe,Liechtenstein,EUR,Bank Transfer (SEPA),Payout,"LGT Bank
+VP Bank",
+Europe,Lithuania,EUR,Bank Transfer (SEPA),Payout,"SEB bankas
+Swedbank",
+Europe,Luxembourg,EUR,Bank Transfer (SEPA),Payout,"BCEE
+BGL BNP Paribas",
+Europe,Malta,EUR,Bank Transfer (SEPA),Payout,"Bank of Valletta
+HSBC Bank Malta",
+Europe,Monaco,EUR,Bank Transfer (SEPA),Payout,"Compagnie Monégasque de Banque
+Société Générale Private Banking Monaco",
+Europe,Netherlands,EUR,Bank Transfer (SEPA),Payout,"ING Group
+ABN AMRO",
+Europe,Norway,EUR,Bank Transfer (SEPA),Payout,"DNB Bank
+Nordea Bank",
+Europe,Poland,EUR,Bank Transfer (SEPA),Payout,"Blik
+PKO Bank Polski
+mBank",
+Europe,Portugal,EUR,Bank Transfer (SEPA),Payout,"Caixa Geral de Depósitos
+Millennium BCP",
+Europe,Romania,EUR,Bank Transfer (SEPA),Payout,"Banca Transilvania
+BRD – Groupe Société Générale",
+Europe,San Marino,EUR,Bank Transfer (SEPA),Payout,"Cassa di Risparmio della Repubblica di San Marino
+Banca di San Marino",
+Europe,Slovakia,EUR,Bank Transfer (SEPA),Payout,"Slovenská sporiteľňa
+Tatra banka",
+Europe,Slovenia,EUR,Bank Transfer (SEPA),Payout,"NLB (Nova Ljubljanska Banka)
+NKBM (Nova Kreditna Banka Maribor)",
+Europe,Spain,EUR,Bank Transfer (SEPA),Payout,"Banco Santander
+BBVA",
+Europe,Sweden,EUR,Bank Transfer (SEPA),Payout,"Handelsbanken
+Swedbank",
+Europe,Switzerland,EUR,Bank Transfer (SEPA),Payout,"UBS
+Credit Suisse",
+Europe,Vatican City,EUR,Bank Transfer (SEPA),Payout,Istituto per le Opere di Religione (Vatican Bank),
+Europe,Lavia,EUR,Bank Transfer (SEPA),Payout,Swedbank,
+LATAM,Argentina,ARS,Bank Transfer,Payin,Bank Transfer,
+LATAM,Argentina,ARS,Bank Transfer,Payout,"Banco Santander Argentina SA
+Banco de la Nación Argentina
+Banco De Galicia Y Buenos Aires
+Banco De La Ciudad De Buenos Aires
+Brubank S A U",
+LATAM,Argentina,ARS,Wallets,Payout,Astropay,
+LATAM,Argentina,ARS,Wallets,Payout,Belo,
+LATAM,Argentina,ARS,Wallets,Payout,Lemon Cash,
+LATAM,Argentina,ARS,Wallets,Payout,Mercadopago,
+LATAM,Argentina,ARS,Wallets,Payout,Naranja X,
+LATAM,Argentina,ARS,Wallets,Payout,Uala,
+LATAM,Brazil,BRL,Bank Transfer,Payin,PIX,
+LATAM,Brazil,BRL,Bank Transfer/PIX,Payout,"Banco do Brasil SA
+Itaú Unibanco Holding SA",
+LATAM,Chile,CLP,Bank Transfer,Payin,Bank Transfer,
+LATAM,Chile,CLP,Bank Transfer,Payout,"Banco International
+Corp Banca
+Banco Falabella
+Banco de Crédito e Inversiones
+Banco Santander-Chile",
+LATAM,Colombia,COP,Bank Transfer,Payin,PSE,
+LATAM,Colombia,COP,Bank Transfer/PSE,Payout,"Banco de Bogotá SA
+Bancolombia SA
+Banco Popular
+Banco AV Villas",
+LATAM,Mexico,MXN,Bank Transfer,Payin,SPEI,
+LATAM,Mexico,MXN,Bank Transfer,Payout,Grupo Financiero Banorte SAB de CV,
+LATAM,Peru,PEN,Bank Transfer,Payin,Bank Transfer,
+LATAM,Peru,PEN,Bank Transfer,Payout,"Interbank
+Scotiabank
+Banco de Crédito del Perú
+BBVA Perú
+Rapi Bank",
+North America,Canada,CAD,Bank Transfer,Payin,Interac,
+North America,Canada,CAD,Bank Transfer,Payout,BillPay,
+North America,Canada,CAD,Bank Transfer,Payout,"Interac
+EFT",
+North America,USA,USD,Bank Transfer,Payin,FEDWIRE,
+North America,USA,USD,Bank Transfer,Payout,ACH,
+North America,USA,USD,Bank Transfer,Payout,FEDWIRE,
+North America,USA,USD,Bank Transfer,Payout,RTP,
+Global,Global,USD,Bank Transfer,Payout,USD Swift,
+Africa,Cameroon,XAF,Mobile Money,Payin,MTN,
+Africa,Cameroon,XAF,Mobile Money,Payin,Orange,
+Africa,Cameroon,XAF,Mobile Money,Payout,MTN,
+Africa,Cameroon,XAF,Mobile Money,Payout,Orange,
+Africa,Ghana,GHS,Mobile Money,Payin,AirtelTigo,
+Africa,Ghana,GHS,Mobile Money,Payin,MTN,
+Africa,Ghana,GHS,Mobile Money,Payin,Vodafone,
+Africa,Ghana,GHS,Mobile Money,Payout,AirtelTigo,
+Africa,Ghana,GHS,Mobile Money,Payout,MTN,
+Africa,Ghana,GHS,Mobile Money,Payout,Vodafone,
+Africa,Ivory Coast,XOF,Mobile Money,Payin,MTN,
+Africa,Ivory Coast,XOF,Mobile Money,Payin,Wave,
+Africa,Ivory Coast,XOF,Mobile Money,Payout,MTN,
+Africa,Ivory Coast,XOF,Mobile Money,Payout,Wave,
+Africa,Ivory Coast,XOF,Mobile Money,,Orange,
+Africa,Kenya,KES,Mobile Money,Payin,M-Pesa,
+Africa,Kenya,KES,Mobile Money,Payout,M-Pesa,
+Africa,Kenya,KES,Mobile Money,,Airtel,
+Africa,Nigeria,NGN,Bank Transfer,Payin,"Access Bank Plc
+Zenith Bank Plc",
+Africa,Nigeria,NGN,Bank Transfer,Payout,"Access Bank Plc
+Zenith Bank Plc",
+Africa,Nigeria,NGN,Mobile Money,,"OPay
+Palmpay
+PayAttitude",
+Africa,Tanzania,TZS,Mobile Money,Payin,Airtel Money,
+Africa,Tanzania,TZS,Mobile Money,Payin,Halopesa,
+Africa,Tanzania,TZS,Mobile Money,Payin,TigoPesa,
+Africa,Tanzania,TZS,Mobile Money,Payout,Airtel Money,
+Africa,Tanzania,TZS,Mobile Money,Payout,Halopesa,
+Africa,Tanzania,TZS,Mobile Money,Payout,TigoPesa,
+Africa,Uganda,UGX,Mobile Money,Payin,Airtel,
+Africa,Uganda,UGX,Mobile Money,Payin,Airtel Money,
+Africa,Uganda,UGX,Mobile Money,Payin,MTN,
+Africa,Uganda,UGX,Mobile Money,Payout,Airtel,
+Africa,Uganda,UGX,Mobile Money,Payout,Airtel Money,
+Africa,Uganda,UGX,Mobile Money,Payout,MTN,
+Africa,Zambia,ZMW,Mobile Money,Payin,Airtel Money,
+Africa,Zambia,ZMW,Mobile Money,Payin,MTN,
+Africa,Zambia,ZMW,Mobile Money,Payin,Zamtel,
+Africa,Zambia,ZMW,Mobile Money,Payout,Airtel Money,
+Africa,Zambia,ZMW,Mobile Money,Payout,MTN,
+Africa,Zambia,ZMW,Mobile Money,Payout,Zamtel,
+MENA,UAE,AED,Bank Transfers,Payout,"UAE FTS
+First Abu Dhabi Bank
+Emirates Islamic Bank
+Mashreq Bank
+HSBC UAE",
